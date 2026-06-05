@@ -31,6 +31,16 @@ services:
       timeout: 5s
       retries: 5
 
+  migrate:
+    image: migrate/migrate
+    container_name: nebula-migrate
+    command: [-path, /migrations, -database, "postgres://postgres:postgres@postgres:5432/nebula?sslmode=disable", up]
+    volumes:
+      - ./migrations:/migrations
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   postgres_data:
   redis_data:
