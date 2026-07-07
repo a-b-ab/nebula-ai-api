@@ -9,15 +9,21 @@ import (
 	"nebula-ai-api/internal/service"
 
 	"github.com/gin-gonic/gin"
+	"github.com/joho/godotenv"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
 
 func main() {
+	// 加载 .env 文件
+	if err := godotenv.Load(); err != nil {
+		log.Println("警告: 无法加载 .env 文件，使用默认配置")
+	}
+
 	cfg := config.Load()
 
 	// 初始化 GORM 数据库
-	dsn := cfg.DBUser + ":" + cfg.DBPassword + "@tcp(" + cfg.DBHost + ":" + cfg.DBPort + ")/" + cfg.DBName + "?charset=utf8mb4&parseTime=True&loc=Local"
+	dsn := "host=" + cfg.DBHost + " port=" + cfg.DBPort + " user=" + cfg.DBUser + " password=" + cfg.DBPassword + " dbname=" + cfg.DBName + " sslmode=disable TimeZone=Asia/Shanghai"
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("数据库连接失败:", err)
@@ -33,12 +39,13 @@ func main() {
 
 	// 初始化 Service
 	articleService := service.NewArticleService(articleRepo)
+	markdownService := service.NewMarkdownService()
 
 	// 初始化 Gin
 	r := gin.Default()
 
 	// 设置路由
-	api.SetupRoutes(r, articleService)
+	api.SetupRoutes(r, articleService, markdownService)
 
 	// 启动服务器
 	log.Println("服务器启动，端口: " + cfg.ServerPort)
