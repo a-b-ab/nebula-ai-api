@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"nebula-ai-api/internal/ai"
 	"nebula-ai-api/internal/api"
@@ -8,6 +9,8 @@ import (
 	"nebula-ai-api/internal/model"
 	"nebula-ai-api/internal/repository"
 	"nebula-ai-api/internal/service"
+	"nebula-ai-api/internal/worker"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
@@ -51,6 +54,9 @@ func main() {
 
 	// 设置路由
 	api.SetupRoutes(r, articleService, markdownService, taskService)
+
+	taskWorker := worker.NewTaskWorker(taskService, 2*time.Second)
+	go taskWorker.Start(context.Background())
 
 	// 启动服务器
 	log.Println("服务器启动，端口: " + cfg.ServerPort)

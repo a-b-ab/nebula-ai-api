@@ -31,6 +31,7 @@ func SetupRoutes(
 			articles.DELETE("/:id", articleHandler.Delete)                     // 删除文章
 			articles.PUT("/:id/status", articleHandler.UpdateStatus)           // 更新文章状态
 			articles.POST("/:id/platforms", articleHandler.AddPublishPlatform) // 添加发布平台
+			articles.POST("/:id/optimize", articleHandler.Optimize)            // 创建文章 AI 优化任务
 		}
 
 		tasks := api.Group("/tasks")

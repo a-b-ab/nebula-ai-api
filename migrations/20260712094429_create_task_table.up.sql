@@ -1,7 +1,7 @@
-CREATE TABLE IF NOT EXIXSTS tasks (
+CREATE TABLE IF NOT EXISTS tasks (
     id SERIAL PRIMARY KEY,
     type VARCHAR(50) NOT NULL,
-    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    status VARCHAR(20) NOT NULL DEFAULT 'pending',
     article_id INTEGER NOT NULL,
     payload JSONB,
     result JSONB,
@@ -11,9 +11,9 @@ CREATE TABLE IF NOT EXIXSTS tasks (
     started_at TIMESTAMP,
     finished_at TIMESTAMP,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_task_article FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE
+    CONSTRAINT fk_tasks_article FOREIGN KEY(article_id) REFERENCES articles(id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_tasks_type ON tasks(type);

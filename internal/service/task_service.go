@@ -8,6 +8,7 @@ import (
 	"nebula-ai-api/internal/ai"
 	"nebula-ai-api/internal/model"
 	"nebula-ai-api/internal/repository"
+	"strings"
 )
 
 type TaskService struct {
@@ -41,6 +42,7 @@ func (s *TaskService) CreateArticleOptimizeTask(articleID uint) (*model.Task, er
 	task := &model.Task{
 		Type:       model.TaskTypeArticleOptimize,
 		Status:     model.TaskStatusPending,
+		ArticleID:  articleID,
 		Payload:    &payload,
 		MaxRetries: 3,
 	}
@@ -122,6 +124,9 @@ func (s *TaskService) executeArticleOptimize(ctx context.Context, task *model.Ta
 		article.Summary = optimizeResult.Summary
 	}
 	if len(optimizeResult.Tags) > 0 {
+		article.Tags = strings.Join(optimizeResult.Tags, ",")
+	}
+	if optimizeResult.Content != "" {
 		article.Content = optimizeResult.Content
 	}
 
