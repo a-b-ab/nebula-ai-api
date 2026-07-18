@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"nebula-ai-api/internal/ai"
 	"nebula-ai-api/internal/api"
 	"nebula-ai-api/internal/config"
 	"nebula-ai-api/internal/model"
@@ -36,16 +37,20 @@ func main() {
 
 	// 初始化 Repository
 	articleRepo := repository.NewArticleRepository(db)
+	taskRepo := repository.NewTaskRepository(db)
+
+	articleOptimizer := ai.NewFakeArticleOptimizer()
 
 	// 初始化 Service
 	articleService := service.NewArticleService(articleRepo)
 	markdownService := service.NewMarkdownService()
+	taskService := service.NewTaskService(taskRepo, articleRepo, articleOptimizer)
 
 	// 初始化 Gin
 	r := gin.Default()
 
 	// 设置路由
-	api.SetupRoutes(r, articleService, markdownService)
+	api.SetupRoutes(r, articleService, markdownService, taskService)
 
 	// 启动服务器
 	log.Println("服务器启动，端口: " + cfg.ServerPort)

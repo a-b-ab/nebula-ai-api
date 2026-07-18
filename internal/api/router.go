@@ -6,9 +6,15 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRoutes(r *gin.Engine, articleService *service.ArticleService, markdownService *service.MarkdownService) {
-	articleHandler := NewArticleHandler(articleService)
+func SetupRoutes(
+	r *gin.Engine,
+	articleService *service.ArticleService,
+	markdownService *service.MarkdownService,
+	taskService *service.TaskService,
+) {
+	articleHandler := NewArticleHandler(articleService, taskService)
 	markdownHandler := NewMarkdownHandler(markdownService)
+	taskHandler := NewTaskHandler(taskService)
 
 	api := r.Group("/api")
 	{
@@ -25,6 +31,12 @@ func SetupRoutes(r *gin.Engine, articleService *service.ArticleService, markdown
 			articles.DELETE("/:id", articleHandler.Delete)                     // 删除文章
 			articles.PUT("/:id/status", articleHandler.UpdateStatus)           // 更新文章状态
 			articles.POST("/:id/platforms", articleHandler.AddPublishPlatform) // 添加发布平台
+		}
+
+		tasks := api.Group("/tasks")
+		{
+			tasks.GET("", taskHandler.List)
+			tasks.GET("/:id", taskHandler.GetByID)
 		}
 
 		markdown := api.Group("/markdown")

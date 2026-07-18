@@ -12,11 +12,13 @@ import (
 
 type ArticleHandler struct {
 	articleService *service.ArticleService
+	taskService    *service.TaskService
 }
 
-func NewArticleHandler(articleService *service.ArticleService) *ArticleHandler {
+func NewArticleHandler(articleService *service.ArticleService, taskService *service.TaskService) *ArticleHandler {
 	return &ArticleHandler{
 		articleService: articleService,
+		taskService:    taskService,
 	}
 }
 
@@ -28,11 +30,11 @@ type CreateArticleRequest struct {
 }
 
 type UpdateArticleRequest struct {
-	Title           *string             `json:"title"`
-	Content         *string             `json:"content"`
-	Summary         *string             `json:"summary"`
-	Tags            *string             `json:"tags"`
-	PublishPlatform *string             `json:"publish_platform"`
+	Title           *string              `json:"title"`
+	Content         *string              `json:"content"`
+	Summary         *string              `json:"summary"`
+	Tags            *string              `json:"tags"`
+	PublishPlatform *string              `json:"publish_platform"`
 	Status          *model.ArticleStatus `json:"status"`
 }
 
@@ -214,4 +216,21 @@ func (h *ArticleHandler) AddPublishPlatform(c *gin.Context) {
 	response.Success(c, gin.H{
 		"message": "平台添加成功",
 	})
+}
+
+func (h *ArticleHandler) Optimize(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.ParseUint(idParam, 10, 32)
+	if err != nil {
+		response.BadRequest(c, "无效的文章ID")
+		return
+	}
+
+	task, err := h.taskService.CreateArticleOptimizeTask(uint(id))
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+
+	response.Success(c, task)
 }
