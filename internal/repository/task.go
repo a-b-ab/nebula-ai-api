@@ -112,3 +112,17 @@ func (r *TaskRespository) MarkFailed(id uint, errMsg string) error {
 		"finished_at": now,
 	}).Error
 }
+
+// FailProcessingTasks 将遗留的处理中的任务标记为失败
+func (r *TaskRespository) FailProcessingTasks(reason string) (int64, error) {
+	now := time.Now()
+	result := r.db.Model(&model.Task{}).
+		Where("status = ? ", model.TaskStatusProcessing).
+		Updates(map[string]interface{}{
+			"status":      model.TaskStatusFailed,
+			"error":       reason,
+			"finished_at": now,
+			"updated_at":  now,
+		})
+	return result.RowsAffected, result.Error
+}

@@ -11,6 +11,8 @@ import (
 	"strings"
 )
 
+const interruptedTaskReason = "上次执行被中断"
+
 type TaskService struct {
 	taskRepo    *repository.TaskRespository
 	articleRepo *repository.ArticleRepository
@@ -156,4 +158,9 @@ func normalizePage(page, pageSize int) (int, int) {
 		pageSize = 100
 	}
 	return page, pageSize
+}
+
+// 将意外退出的任务标记为failed
+func (s *TaskService) RecoverInterruptedTasks() (int64, error) {
+	return s.taskRepo.FailProcessingTasks(interruptedTaskReason)
 }

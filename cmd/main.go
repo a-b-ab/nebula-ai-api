@@ -49,6 +49,13 @@ func main() {
 	markdownService := service.NewMarkdownService()
 	taskService := service.NewTaskService(taskRepo, articleRepo, articleOptimizer)
 
+	// 恢复意外中断的任务
+	recovered, err := taskService.RecoverInterruptedTasks()
+	if err != nil {
+		log.Fatal("恢复中断任务失败:", err)
+	}
+	log.Printf("已将 %d 个上次中断的任务标记为失败", recovered)
+
 	// 初始化 Gin
 	r := gin.Default()
 
