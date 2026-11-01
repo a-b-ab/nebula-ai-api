@@ -1,11 +1,16 @@
 package api
 
 import (
+	"encoding/json"
+	"errors"
+	"io"
 	"nebula-ai-api/internal/model"
 	"nebula-ai-api/internal/service"
 	"nebula-ai-api/pkg/query"
 	"nebula-ai-api/pkg/response"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
@@ -20,6 +25,13 @@ func NewArticleHandler(articleService *service.ArticleService, taskService *serv
 		articleService: articleService,
 		taskService:    taskService,
 	}
+}
+
+// 文章格式(导出导入)
+type articleMetadata struct {
+	Title   string `json:"title"`
+	Summary string `json:"summary"`
+	Tags    string `json:"tags"`
 }
 
 type CreateArticleRequest struct {
@@ -40,6 +52,107 @@ type UpdateArticleRequest struct {
 
 type UpdateStatusRequest struct {
 	Status model.ArticleStatus `json:"status" binding:"required,min=0,max=2"`
+}
+
+// Markdown 解析函数
+func parseArticleMarkdown(content []byte) (articleMetadata, string, error) {
+	const delimiter = "---"
+	text := strings.ReplaceAll(string(content), "\r\n", "\n")
+	if !strings.HasPrefix(text, delimiter+"\n") {
+		return articleMetadata{}, "", errors.New("Markdown 文件缺少 Front Matter")
+	}
+
+	rest := strings.TrimPrefix(text, delimiter+"\n")
+	end := strings.Index(rest, "\n"+delimiter+"\n")
+	if end < 0 {
+		return articleMetadata{}, "", errors.New("Markdown Front Matter 格式错误")
+	}
+
+	var metadata articleMetadata
+	if err := json.Unmarshal([]byte(rest[:end]), &metadata); err != nil {
+		return articleMetadata{}, "", errors.New("Markdown JSON 元数据解析失败: " + err.Error())
+	}
+
+	body := strings.TrimPrefix(rest[end+len("\n"+delimiter+"\n"):], "\n")
+	return metadata, body, nil
+}
+
+// 导出文章
+func (h *ArticleHandler) Export(c *gin.Context) {
+	id, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	if err != nil {
+		response.BadRequest(c, "无效的文章ID")
+		return
+	}
+
+	article, err := h.articleService.GetByID(uint(id))
+	if err != nil {
+		response.NotFound(c, "文章不存在")
+		return
+	}
+
+	metadata, err := json.Marshal(articleMetadata{
+		Title: article.Title, Summary: article.Summary, Tags: article.Tags,
+	})
+	if err != nil {
+		response.InternalError(c, "生成 Mardown 失败")
+		return
+	}
+
+	markdown := "---\n" + string(metadata) + "\n--\n\n" + article.Content
+	response.Success(c, markdown)
+}
+
+// 导入文章
+func (h *ArticleHandler) Import(c *gin.Context) {
+	header, err := c.FormFile("file")
+	if err != nil {
+		response.BadRequest(c, "请选择 Markdown 文件")
+		return
+	}
+	if !strings.EqualFold(filepath.Ext(header.Filename), ".md") {
+		response.BadRequest(c, "只支持 .md 文件")
+		return
+	}
+	if header.Size > 2*1024*1024 {
+		response.BadRequest(c, "文件不能超过 2MB")
+		return
+	}
+
+	file, err := header.Open()
+	if err != nil {
+		response.BadRequest(c, "无法读取导入文件")
+		return
+	}
+	defer file.Close()
+
+	content, err := io.ReadAll(file)
+	if err != nil {
+		response.BadRequest(c, "无法读取导入文件")
+		return
+	}
+	metadata, body, err := parseArticleMarkdown(content)
+	if err != nil {
+		response.BadRequest(c, err.Error())
+		return
+	}
+	if strings.TrimSpace(metadata.Title) == "" {
+		response.BadRequest(c, "文章标题不能为空")
+		return
+	}
+	if strings.TrimSpace(body) == "" {
+		response.BadRequest(c, "文章正文不能为空")
+		return
+	}
+
+	article, err := h.articleService.Create(&service.CreateArticleInput{
+		Title: metadata.Title, Content: body, Summary: metadata.Summary, Tags: metadata.Tags,
+	})
+	if err != nil {
+		response.InternalError(c, err.Error())
+		return
+	}
+	response.Success(c, article)
 }
 
 // Create 创建文章

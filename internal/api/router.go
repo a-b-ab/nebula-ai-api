@@ -32,6 +32,8 @@ func SetupRoutes(
 			articles.PUT("/:id/status", articleHandler.UpdateStatus)           // 更新文章状态
 			articles.POST("/:id/platforms", articleHandler.AddPublishPlatform) // 添加发布平台
 			articles.POST("/:id/optimize", articleHandler.Optimize)            // 创建文章 AI 优化任务
+			articles.POST("/import", articleHandler.Import)                    // 导出文章
+			articles.GET("/:id/export", articleHandler.Export)                 // 导入文章
 		}
 
 		tasks := api.Group("/tasks")
